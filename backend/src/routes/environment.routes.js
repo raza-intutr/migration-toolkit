@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import * as environmentController from '../controllers/environment.controller.js';
+import * as tenantController from '../controllers/tenant.controller.js';
 import { validate } from '../middleware/validate.middleware.js';
 import { asyncHandler } from '../utils/asyncHandler.js';
 import {
@@ -92,6 +93,32 @@ router.get('/', asyncHandler(environmentController.getAll));
  *         description: Environment not found
  */
 router.get('/:id', asyncHandler(environmentController.getById));
+
+/**
+ * @openapi
+ * /environments/{id}/test-connection:
+ *   get:
+ *     summary: Test the environment database connection
+ *     description: >-
+ *       Runs SELECT 1 against the environment's own database and reports whether it
+ *       is reachable. Always returns HTTP 200; the connected flag in the response
+ *       indicates success or failure.
+ *     tags: [Environments]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Connection test result
+ *       401:
+ *         description: Not authenticated
+ *       404:
+ *         description: Environment not found
+ */
+router.get('/:id/test-connection', asyncHandler(tenantController.testConnection));
 
 /**
  * @openapi
