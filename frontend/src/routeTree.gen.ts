@@ -11,6 +11,9 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as AuthenticatedIndexRouteImport } from './routes/_authenticated/index'
+import { Route as AuthenticatedEnvironmentsIndexRouteImport } from './routes/_authenticated/environments/index'
+import { Route as AuthenticatedEnvironmentsNewRouteImport } from './routes/_authenticated/environments/new'
+import { Route as AuthenticatedEnvironmentsIdEditRouteImport } from './routes/_authenticated/environments/$id/edit'
 
 const AuthenticatedRouteRoute = AuthenticatedRouteRouteImport.update({
   id: '/_authenticated',
@@ -21,24 +24,61 @@ const AuthenticatedIndexRoute = AuthenticatedIndexRouteImport.update({
   path: '/',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedEnvironmentsIndexRoute =
+  AuthenticatedEnvironmentsIndexRouteImport.update({
+    id: '/environments/',
+    path: '/environments/',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedEnvironmentsNewRoute =
+  AuthenticatedEnvironmentsNewRouteImport.update({
+    id: '/environments/new',
+    path: '/environments/new',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedEnvironmentsIdEditRoute =
+  AuthenticatedEnvironmentsIdEditRouteImport.update({
+    id: '/environments/$id/edit',
+    path: '/environments/$id/edit',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof AuthenticatedIndexRoute
+  '/environments/new': typeof AuthenticatedEnvironmentsNewRoute
+  '/environments/': typeof AuthenticatedEnvironmentsIndexRoute
+  '/environments/$id/edit': typeof AuthenticatedEnvironmentsIdEditRoute
 }
 export interface FileRoutesByTo {
   '/': typeof AuthenticatedIndexRoute
+  '/environments/new': typeof AuthenticatedEnvironmentsNewRoute
+  '/environments': typeof AuthenticatedEnvironmentsIndexRoute
+  '/environments/$id/edit': typeof AuthenticatedEnvironmentsIdEditRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
   '/_authenticated/': typeof AuthenticatedIndexRoute
+  '/_authenticated/environments/new': typeof AuthenticatedEnvironmentsNewRoute
+  '/_authenticated/environments/': typeof AuthenticatedEnvironmentsIndexRoute
+  '/_authenticated/environments/$id/edit': typeof AuthenticatedEnvironmentsIdEditRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/'
+  fullPaths:
+    | '/'
+    | '/environments/new'
+    | '/environments/'
+    | '/environments/$id/edit'
   fileRoutesByTo: FileRoutesByTo
-  to: '/'
-  id: '__root__' | '/_authenticated' | '/_authenticated/'
+  to: '/' | '/environments/new' | '/environments' | '/environments/$id/edit'
+  id:
+    | '__root__'
+    | '/_authenticated'
+    | '/_authenticated/'
+    | '/_authenticated/environments/new'
+    | '/_authenticated/environments/'
+    | '/_authenticated/environments/$id/edit'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -61,15 +101,42 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedIndexRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/environments/': {
+      id: '/_authenticated/environments/'
+      path: '/environments'
+      fullPath: '/environments/'
+      preLoaderRoute: typeof AuthenticatedEnvironmentsIndexRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/environments/new': {
+      id: '/_authenticated/environments/new'
+      path: '/environments/new'
+      fullPath: '/environments/new'
+      preLoaderRoute: typeof AuthenticatedEnvironmentsNewRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/environments/$id/edit': {
+      id: '/_authenticated/environments/$id/edit'
+      path: '/environments/$id/edit'
+      fullPath: '/environments/$id/edit'
+      preLoaderRoute: typeof AuthenticatedEnvironmentsIdEditRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
   }
 }
 
 interface AuthenticatedRouteRouteChildren {
   AuthenticatedIndexRoute: typeof AuthenticatedIndexRoute
+  AuthenticatedEnvironmentsNewRoute: typeof AuthenticatedEnvironmentsNewRoute
+  AuthenticatedEnvironmentsIndexRoute: typeof AuthenticatedEnvironmentsIndexRoute
+  AuthenticatedEnvironmentsIdEditRoute: typeof AuthenticatedEnvironmentsIdEditRoute
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedIndexRoute: AuthenticatedIndexRoute,
+  AuthenticatedEnvironmentsNewRoute: AuthenticatedEnvironmentsNewRoute,
+  AuthenticatedEnvironmentsIndexRoute: AuthenticatedEnvironmentsIndexRoute,
+  AuthenticatedEnvironmentsIdEditRoute: AuthenticatedEnvironmentsIdEditRoute,
 }
 
 const AuthenticatedRouteRouteWithChildren =

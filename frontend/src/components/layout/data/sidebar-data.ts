@@ -1,4 +1,4 @@
-import { Command, LayoutDashboard } from 'lucide-react'
+import { Command, Globe, LayoutDashboard } from 'lucide-react'
 import { type SidebarData } from '../types'
 
 export const sidebarData: SidebarData = {
@@ -22,6 +22,11 @@ export const sidebarData: SidebarData = {
           title: 'Dashboard',
           url: '/',
           icon: LayoutDashboard,
+        },
+        {
+          title: 'Environments',
+          url: '/environments',
+          icon: Globe,
         },
       ],
     },
