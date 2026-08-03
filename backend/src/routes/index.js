@@ -3,6 +3,7 @@ import healthRoutes from './health.routes.js';
 import userRoutes from './user.routes.js';
 import environmentRoutes from './environment.routes.js';
 import tenantRoutes from './tenant.routes.js';
+import dashboardRoutes from './dashboard.routes.js';
 
 const router = Router();
 
@@ -11,5 +12,6 @@ router.use('/', healthRoutes);
 router.use('/users', userRoutes);
 router.use('/environments', environmentRoutes);
 router.use('/environments/:id/tenants', tenantRoutes);
+router.use('/dashboard', dashboardRoutes);
 
 export default router;

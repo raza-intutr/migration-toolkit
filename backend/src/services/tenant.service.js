@@ -11,7 +11,7 @@ const poolCache = new Map();
 const ENV_POOL_KEY = 'env';
 const TENANT_POOL_KEY = 'tenant';
 
-const toPoolConfig = (environment) => ({
+export const toPoolConfig = (environment) => ({
   host: environment.host,
   port: environment.port,
   database: environment.db,
@@ -52,7 +52,7 @@ const evictLeastRecentlyUsed = () => {
   }
 };
 
-const getPool = (key, config) => {
+export const getPool = (key, config) => {
   evictLeastRecentlyUsed();
   const cached = poolCache.get(key);
   if (cached) {
@@ -64,7 +64,7 @@ const getPool = (key, config) => {
   return pool;
 };
 
-const closePool = (key) => {
+export const closePool = (key) => {
   const entry = poolCache.get(key);
   if (entry) {
     poolCache.delete(key);
