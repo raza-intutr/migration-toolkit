@@ -22,14 +22,14 @@ export const toPoolConfig = (environment) => ({
 });
 
 const toTenantPoolConfig = (dbDetails) => {
-  const { host, port, database } = parseJdbcUrl(dbDetails.url);
+  const { host, port, database, ssl } = parseJdbcUrl(dbDetails.url);
   return {
     host,
     port,
     database,
     user: dbDetails.username,
     password: dbDetails.password ?? undefined,
-    ssl: { rejectUnauthorized: false },
+    ssl: ssl ? { rejectUnauthorized: false } : false,
     connectionTimeoutMillis: 30000,
   };
 };
