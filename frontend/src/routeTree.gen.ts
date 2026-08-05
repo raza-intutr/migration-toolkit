@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as AuthenticatedIndexRouteImport } from './routes/_authenticated/index'
+import { Route as AuthenticatedTenantTablesRouteImport } from './routes/_authenticated/tenant-tables'
 import { Route as AuthenticatedEnvironmentsIndexRouteImport } from './routes/_authenticated/environments/index'
 import { Route as AuthenticatedEnvironmentsNewRouteImport } from './routes/_authenticated/environments/new'
 import { Route as AuthenticatedEnvironmentsIdEditRouteImport } from './routes/_authenticated/environments/$id/edit'
@@ -24,6 +25,12 @@ const AuthenticatedIndexRoute = AuthenticatedIndexRouteImport.update({
   path: '/',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedTenantTablesRoute =
+  AuthenticatedTenantTablesRouteImport.update({
+    id: '/tenant-tables',
+    path: '/tenant-tables',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedEnvironmentsIndexRoute =
   AuthenticatedEnvironmentsIndexRouteImport.update({
     id: '/environments/',
@@ -45,11 +52,13 @@ const AuthenticatedEnvironmentsIdEditRoute =
 
 export interface FileRoutesByFullPath {
   '/': typeof AuthenticatedIndexRoute
+  '/tenant-tables': typeof AuthenticatedTenantTablesRoute
   '/environments/new': typeof AuthenticatedEnvironmentsNewRoute
   '/environments/': typeof AuthenticatedEnvironmentsIndexRoute
   '/environments/$id/edit': typeof AuthenticatedEnvironmentsIdEditRoute
 }
 export interface FileRoutesByTo {
+  '/tenant-tables': typeof AuthenticatedTenantTablesRoute
   '/': typeof AuthenticatedIndexRoute
   '/environments/new': typeof AuthenticatedEnvironmentsNewRoute
   '/environments': typeof AuthenticatedEnvironmentsIndexRoute
@@ -58,6 +67,7 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
+  '/_authenticated/tenant-tables': typeof AuthenticatedTenantTablesRoute
   '/_authenticated/': typeof AuthenticatedIndexRoute
   '/_authenticated/environments/new': typeof AuthenticatedEnvironmentsNewRoute
   '/_authenticated/environments/': typeof AuthenticatedEnvironmentsIndexRoute
@@ -67,14 +77,21 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/tenant-tables'
     | '/environments/new'
     | '/environments/'
     | '/environments/$id/edit'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/environments/new' | '/environments' | '/environments/$id/edit'
+  to:
+    | '/tenant-tables'
+    | '/'
+    | '/environments/new'
+    | '/environments'
+    | '/environments/$id/edit'
   id:
     | '__root__'
     | '/_authenticated'
+    | '/_authenticated/tenant-tables'
     | '/_authenticated/'
     | '/_authenticated/environments/new'
     | '/_authenticated/environments/'
@@ -99,6 +116,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof AuthenticatedIndexRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/tenant-tables': {
+      id: '/_authenticated/tenant-tables'
+      path: '/tenant-tables'
+      fullPath: '/tenant-tables'
+      preLoaderRoute: typeof AuthenticatedTenantTablesRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/environments/': {
@@ -126,6 +150,7 @@ declare module '@tanstack/react-router' {
 }
 
 interface AuthenticatedRouteRouteChildren {
+  AuthenticatedTenantTablesRoute: typeof AuthenticatedTenantTablesRoute
   AuthenticatedIndexRoute: typeof AuthenticatedIndexRoute
   AuthenticatedEnvironmentsNewRoute: typeof AuthenticatedEnvironmentsNewRoute
   AuthenticatedEnvironmentsIndexRoute: typeof AuthenticatedEnvironmentsIndexRoute
@@ -133,6 +158,7 @@ interface AuthenticatedRouteRouteChildren {
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
+  AuthenticatedTenantTablesRoute: AuthenticatedTenantTablesRoute,
   AuthenticatedIndexRoute: AuthenticatedIndexRoute,
   AuthenticatedEnvironmentsNewRoute: AuthenticatedEnvironmentsNewRoute,
   AuthenticatedEnvironmentsIndexRoute: AuthenticatedEnvironmentsIndexRoute,
