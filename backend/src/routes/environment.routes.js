@@ -96,6 +96,33 @@ router.get('/:id', asyncHandler(environmentController.getById));
 
 /**
  * @openapi
+ * /environments/{id}/tables:
+ *   get:
+ *     summary: List tables in the environment database
+ *     description: >-
+ *       Connects to the environment's own database and returns its user tables
+ *       (excluding Postgres system schemas) with an estimated row count.
+ *     tags: [Environments]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: List of tables in the environment database
+ *       401:
+ *         description: Not authenticated
+ *       404:
+ *         description: Environment not found
+ *       502:
+ *         description: Unable to query environment database
+ */
+router.get('/:id/tables', asyncHandler(tenantController.listTables));
+
+/**
+ * @openapi
  * /environments/{id}/test-connection:
  *   get:
  *     summary: Test the environment database connection

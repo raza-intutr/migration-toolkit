@@ -1,68 +1,10 @@
 import prisma from '../config/db.js';
 import { AppError } from '../utils/AppError.js';
-import { parseJdbcUrl } from '../utils/jdbcUrl.js';
-import { getPool, toPoolConfig } from './tenant.service.js';
-import { createDecipheriv, createHash } from 'crypto';
-
-// Encryption key from multitenancy.encryption-key (same default as Java)
-const ENCRYPTION_KEY = process.env.MULTITENANCY_ENCRYPTION_KEY || 'mySecretKey123456';
-
-// Derive AES-128 key using SHA-256 truncated to 16 bytes (matches Java EncryptionUtil)
-function getSecretKey() {
-  const keyBytes = Buffer.from(ENCRYPTION_KEY, 'utf8');
-  const hash = createHash('sha256').update(keyBytes).digest();
-  return hash.subarray(0, 16);
-}
-
-// Decrypt AES-128/ECB/Base64 (matches Java EncryptionUtil.decrypt)
-function decryptPassword(encryptedText) {
-  if (!encryptedText || encryptedText === '') return encryptedText;
-  
-  let decoded;
-  try {
-    decoded = Buffer.from(encryptedText, 'base64');
-  } catch {
-    return encryptedText; // Not valid base64, return as plaintext
-  }
-  
-  if (decoded.length === 0 || decoded.length % 16 !== 0) {
-    return encryptedText; // Not AES block size multiple, treat as plaintext
-  }
-  
-  try {
-    const key = getSecretKey();
-    const decipher = createDecipheriv('aes-128-ecb', key, null);
-    decipher.setAutoPadding(true);
-    const decrypted = Buffer.concat([decipher.update(decoded), decipher.final()]);
-    return decrypted.toString('utf8');
-  } catch {
-    throw new Error('Failed to decrypt password — encryption key may have changed');
-  }
-}
+import { getPool, toPoolConfig, toTenantPoolConfig } from './tenant.service.js';
 
 // Local keys — kept in lockstep with tenant.service.js cache layout.
 const ENV_POOL_KEY = 'env';
 const TENANT_POOL_KEY = 'tenant';
-
-const toTenantPoolConfig = (dbDetails, environmentSslMode) => {
-  const { host, port, database, ssl: jdbcSsl } = parseJdbcUrl(dbDetails.url);
-  // Prefer JDBC URL SSL setting, fallback to environment's ssl_mode
-  const useSsl = jdbcSsl !== undefined ? jdbcSsl : environmentSslMode !== 'disable';
-  // Decrypt password if it's encrypted (AES-128-ECB + Base64)
-  let password = dbDetails.password;
-  if (password) {
-    password = decryptPassword(password);
-  }
-  return {
-    host,
-    port,
-    database,
-    user: dbDetails.username,
-    password: password ?? undefined,
-    ssl: useSsl ? { rejectUnauthorized: false } : false,
-    connectionTimeoutMillis: 30000,
-  };
-};
 
 // Resolve a tenant row from the environment's tenant_connection_info table.
 const resolveTenantRow = async (environment, tenantCode) => {
