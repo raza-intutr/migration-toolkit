@@ -191,6 +191,42 @@ export const getEnvironmentHealth = async () => {
   return results;
 };
 
+// Resolve a tenant's database connection as a plain object usable by both
+// `pg` pools and the pg_dump/pg_restore env builder. The registry password is
+// encrypted on disk, so it must be decrypted here.
+export const resolveTenantConnection = async (environment, tenantCode) => {
+  const tenant = await getTenantRowOrThrow(environment, tenantCode);
+  const dbDetails = tenant.db_details;
+  if (!dbDetails || typeof dbDetails !== 'object' || !dbDetails.url) {
+    throw new AppError(`Tenant '${tenantCode}' has no db_details.url configured`, 400);
+  }
+  const { host, port, database } = parseJdbcUrl(dbDetails.url);
+  return {
+    host,
+    port,
+    db: database,
+    user: dbDetails.username,
+    password: dbDetails.password ? decryptPassword(dbDetails.password) : null,
+    ssl_mode: environment.ssl_mode,
+  };
+};
+
+// Whether a tenant database already contains user tables. Used as an
+// overwrite guard before a destructive migration.
+export const envHasData = async (connection) => {
+  const pool = new Pool(toPoolConfig(connection));
+  try {
+    const { rows } = await pool.query(
+      `SELECT schemaname, tablename FROM pg_tables
+       WHERE schemaname NOT IN ('pg_catalog', 'information_schema')
+       AND schemaname NOT LIKE 'pg\\_%' ESCAPE '\\'`,
+    );
+    return rows.length > 0;
+  } finally {
+    await pool.end();
+  }
+};
+
 export const getTenantByTenantCode = async (environmentId, tenantCode) => {
   const environment = await getEnvironmentOrThrow(environmentId);
   const tenant = await getTenantRowOrThrow(environment, tenantCode);

@@ -34,4 +34,31 @@ model Environment {
   ismultitenant Boolean  @default(false)
   created_at    DateTime @default(now())
   updated_at    DateTime @updatedAt
+
+  sourceMigrationRuns MigrationRun[] @relation("SourceEnvRuns")
+  targetMigrationRuns MigrationRun[] @relation("TargetEnvRuns")
+}
+
+model MigrationRun {
+  id                  String    @id @default(uuid())
+  source_env_id       String
+  target_env_id       String
+  source_tenant_code  String
+  target_tenant_code  String
+  tenant_schema       String
+  overwrite_confirmed Boolean   @default(false)
+  status              String    @default("running")
+  dump_file_path      String?
+  row_counts          Json?
+  error_message       String?
+  started_at          DateTime  @default(now())
+  completed_at        DateTime?
+
+  source_env Environment @relation("SourceEnvRuns", fields: [source_env_id], references: [id])
+  target_env Environment @relation("TargetEnvRuns", fields: [target_env_id], references: [id])
+
+  @@index([source_env_id])
+  @@index([target_env_id])
+  @@index([status])
+  @@map("migration_runs")
 }

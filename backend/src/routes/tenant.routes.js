@@ -1,6 +1,9 @@
 import { Router } from 'express';
 import * as tenantController from '../controllers/tenant.controller.js';
+import * as migrationController from '../controllers/migration.controller.js';
+import { validate } from '../middleware/validate.middleware.js';
 import { asyncHandler } from '../utils/asyncHandler.js';
+import { truncateTenantSchema } from '../validators/migration.validator.js';
 
 // mergeParams exposes the parent :id (environment id) via req.params.id
 const router = Router({ mergeParams: true });
@@ -130,5 +133,54 @@ router.get('/:tenantCode/tables', asyncHandler(tenantController.listTenantTables
  *         description: Environment or tenant not found
  */
 router.get('/:tenantCode/test-connection', asyncHandler(tenantController.testTenantConnection));
+
+/**
+ * @openapi
+ * /environments/{id}/tenants/{tenantCode}/truncate:
+ *   post:
+ *     summary: Truncate every user table in a tenant
+ *     description: >-
+ *       TRUNCATE all user tables (optionally scoped via `tables`) inside the
+ *       tenant's database. Schema is preserved — only the rows are removed.
+ *       Uses TRUNCATE ... RESTART IDENTITY CASCADE so FK ordering is a
+ *       non-issue. Destructive: there is no dry-run for this endpoint.
+ *     tags: [Tenants]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *       - in: path
+ *         name: tenantCode
+ *         required: true
+ *         schema:
+ *           type: string
+ *     requestBody:
+ *       required: false
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               tables:
+ *                 type: array
+ *                 items: { type: string }
+ *                 description: Optional subset of tables to truncate. Omit to clear every user table.
+ *     responses:
+ *       200:
+ *         description: Truncate complete — list of affected tables returned
+ *       400:
+ *         description: No tables found to truncate
+ *       404:
+ *         description: Environment or tenant not found
+ *       502:
+ *         description: Unable to reach tenant database
+ */
+router.post(
+  '/:tenantCode/truncate',
+  validate(truncateTenantSchema),
+  asyncHandler(migrationController.truncate),
+);
 
 export default router;
