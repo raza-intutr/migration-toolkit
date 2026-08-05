@@ -1,4 +1,5 @@
 import pg from 'pg';
+import crypto from 'crypto';
 import prisma from '../config/db.js';
 import { AppError } from '../utils/AppError.js';
 import { parseJdbcUrl } from '../utils/jdbcUrl.js';
@@ -17,7 +18,7 @@ export const toPoolConfig = (environment) => ({
   port: environment.port,
   database: environment.db,
   user: environment.user,
-  password: environment.password,
+  password: environment.password || undefined,
   ssl: environment.ssl_mode !== 'disable' ? { rejectUnauthorized: false } : false,
   connectionTimeoutMillis: 30000,
 });
@@ -139,6 +140,55 @@ export const testEnvironmentConnection = async (environmentId) => {
     closePool(`${ENV_POOL_KEY}:${environment.id}`);
     return { connected: false, latencyMs: null, error: err.message };
   }
+};
+
+// Probe an arbitrary environment connection config without persisting it. Used
+// to test a connection before creating the environment record.
+export const testEnvironmentCredentials = async (config) => {
+  const probeKey = `probe:${crypto.randomUUID()}`;
+  const pool = getPool(probeKey, toPoolConfig(config));
+
+  const startedAt = Date.now();
+  try {
+    await pool.query('SELECT 1');
+    return { connected: true, latencyMs: Date.now() - startedAt };
+  } catch (err) {
+    closePool(probeKey);
+    return { connected: false, latencyMs: null, error: err.message };
+  }
+};
+
+// Lightweight health probe for all environments — SELECT 1 against each DB,
+// never fails the request. Used by the status column on the environments page.
+export const getEnvironmentHealth = async () => {
+  const environments = await prisma.environment.findMany({ orderBy: { created_at: 'asc' } });
+
+  const probe = async (environment) => {
+    const pool = getPool(`${ENV_POOL_KEY}:${environment.id}`, toPoolConfig(environment));
+    const startedAt = Date.now();
+    try {
+      await pool.query('SELECT 1');
+      return {
+        environmentId: environment.id,
+        name: environment.name,
+        isActive: environment.is_active,
+        connected: true,
+        latencyMs: Date.now() - startedAt,
+      };
+    } catch {
+      closePool(`${ENV_POOL_KEY}:${environment.id}`);
+      return {
+        environmentId: environment.id,
+        name: environment.name,
+        isActive: environment.is_active,
+        connected: false,
+        latencyMs: null,
+      };
+    }
+  };
+
+  const results = await Promise.all(environments.map(probe));
+  return results;
 };
 
 export const getTenantByTenantCode = async (environmentId, tenantCode) => {

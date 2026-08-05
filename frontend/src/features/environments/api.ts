@@ -46,7 +46,7 @@ export function useEnvironment(id: string | undefined) {
     enabled: Boolean(id),
     queryFn: async () => {
       const { data } = await apiClient.get<ApiResponse<Environment>>(
-        `${ENDPOINT}/${id}`,
+        `${ENDPOINT}/${id}`
       )
       return data.data
     },
@@ -59,7 +59,7 @@ export function useCreateEnvironment() {
     mutationFn: async (payload: EnvironmentInput) => {
       const { data } = await apiClient.post<ApiResponse<Environment>>(
         ENDPOINT,
-        payload,
+        payload
       )
       return data.data
     },
@@ -76,7 +76,7 @@ export function useUpdateEnvironment(id: string) {
     mutationFn: async (payload: Partial<EnvironmentInput>) => {
       const { data } = await apiClient.patch<ApiResponse<Environment>>(
         `${ENDPOINT}/${id}`,
-        payload,
+        payload
       )
       return data.data
     },
@@ -84,6 +84,44 @@ export function useUpdateEnvironment(id: string) {
       queryClient.invalidateQueries({ queryKey: ['environments'] })
       queryClient.setQueryData(['environments', id], updated)
       queryClient.invalidateQueries({ queryKey: ['dashboard'] })
+    },
+  })
+}
+
+export interface ConnectionTestResult {
+  connected: boolean
+  latencyMs: number | null
+  error?: string
+}
+
+export function useTestConnection() {
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const { data } = await apiClient.get<ApiResponse<ConnectionTestResult>>(
+        `${ENDPOINT}/${id}/test-connection`
+      )
+      return data.data
+    },
+  })
+}
+
+// Probes a candidate connection without persisting an environment record. Used
+// to validate credentials before creating an environment.
+export function useTestConnectionCredentials() {
+  return useMutation({
+    mutationFn: async (payload: {
+      host: string
+      port: number
+      db: string
+      user: string
+      password?: string
+      ssl_mode: string
+    }) => {
+      const { data } = await apiClient.post<ApiResponse<ConnectionTestResult>>(
+        `${ENDPOINT}/test-connection`,
+        payload
+      )
+      return data.data
     },
   })
 }
@@ -97,7 +135,28 @@ export function useDeleteEnvironment() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['environments'] })
+      queryClient.invalidateQueries({ queryKey: ['environments', 'health'] })
       queryClient.invalidateQueries({ queryKey: ['dashboard'] })
+    },
+  })
+}
+
+export interface EnvironmentHealth {
+  environmentId: string
+  name: string
+  isActive: boolean
+  connected: boolean
+  latencyMs: number | null
+}
+
+export function useEnvironmentHealth() {
+  return useQuery({
+    queryKey: ['environments', 'health'],
+    queryFn: async () => {
+      const { data } = await apiClient.get<ApiResponse<EnvironmentHealth[]>>(
+        `${ENDPOINT}/health`
+      )
+      return data.data
     },
   })
 }

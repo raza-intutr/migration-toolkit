@@ -1,3 +1,7 @@
+import { useState } from 'react'
+import { Eye, EyeOff, Loader2, PlugZap } from 'lucide-react'
+import { toast } from 'sonner'
+import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import {
@@ -7,10 +11,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { cn } from '@/lib/utils'
-import { useState } from 'react'
-import { Eye, EyeOff } from 'lucide-react'
-import type { EnvironmentInput } from './api'
+import { useTestConnectionCredentials, type EnvironmentInput } from './api'
 
 export interface EnvironmentFormValues {
   name: string
@@ -29,7 +30,9 @@ const SSL_MODES = [
   { value: 'disable', label: 'disable' },
 ] as const
 
-const toFormValues = (env?: Partial<EnvironmentInput>): EnvironmentFormValues => ({
+const toFormValues = (
+  env?: Partial<EnvironmentInput>
+): EnvironmentFormValues => ({
   name: env?.name ?? '',
   host: env?.host ?? '',
   port: env?.port ?? 5432,
@@ -43,7 +46,7 @@ const toFormValues = (env?: Partial<EnvironmentInput>): EnvironmentFormValues =>
 
 const toPayload = (
   values: EnvironmentFormValues,
-  includePassword: boolean,
+  includePassword: boolean
 ): EnvironmentInput => {
   const payload: EnvironmentInput = {
     name: values.name.trim(),
@@ -74,16 +77,19 @@ export function EnvironmentForm({
   onSubmit: (payload: EnvironmentInput) => Promise<void> | void
   isSubmitting?: boolean
 }) {
-  const [values, setValues] = useState<EnvironmentFormValues>(toFormValues(initial))
-  const [errors, setErrors] = useState<Partial<Record<keyof EnvironmentFormValues, string>>>(
-    {},
+  const [values, setValues] = useState<EnvironmentFormValues>(
+    toFormValues(initial)
   )
+  const [errors, setErrors] = useState<
+    Partial<Record<keyof EnvironmentFormValues, string>>
+  >({})
   const [showPassword, setShowPassword] = useState(false)
+  const testConnection = useTestConnectionCredentials()
   const isEdit = Boolean(initial)
 
   const set = <K extends keyof EnvironmentFormValues>(
     key: K,
-    value: EnvironmentFormValues[K],
+    value: EnvironmentFormValues[K]
   ) => {
     setValues((prev) => ({ ...prev, [key]: value }))
     setErrors((prev) => ({ ...prev, [key]: undefined }))
@@ -95,7 +101,11 @@ export function EnvironmentForm({
     if (!values.host.trim()) next.host = 'Host is required'
     if (!values.db.trim()) next.db = 'Database is required'
     if (!values.user.trim()) next.user = 'User is required'
-    if (!Number.isInteger(values.port) || values.port < 1 || values.port > 65535) {
+    if (
+      !Number.isInteger(values.port) ||
+      values.port < 1 ||
+      values.port > 65535
+    ) {
       next.port = 'Port must be between 1 and 65535'
     }
     if (!isEdit && !values.password) {
@@ -109,6 +119,29 @@ export function EnvironmentForm({
     event.preventDefault()
     if (!validate()) return
     await onSubmit(toPayload(values, !isEdit))
+  }
+
+  const handleTestConnection = async () => {
+    if (!validate()) return
+    try {
+      const result = await testConnection.mutateAsync({
+        host: values.host.trim(),
+        port: values.port,
+        db: values.db.trim(),
+        user: values.user.trim(),
+        password: values.password.length > 0 ? values.password : undefined,
+        ssl_mode: values.ssl_mode,
+      })
+      if (result.connected) {
+        toast.success(`Connection successful · ${result.latencyMs}ms`)
+      } else {
+        toast.error(`Connection failed: ${result.error ?? 'unknown error'}`)
+      }
+    } catch (error) {
+      toast.error(
+        error instanceof Error ? error.message : 'Failed to test connection'
+      )
+    }
   }
 
   return (
@@ -174,11 +207,15 @@ export function EnvironmentForm({
               type='button'
               variant='ghost'
               size='icon'
-              className='absolute right-2 top-1/2 -translate-y-1/2 h-8 w-8'
+              className='absolute top-1/2 right-2 h-8 w-8 -translate-y-1/2'
               onClick={() => setShowPassword(!showPassword)}
               aria-label={showPassword ? 'Hide password' : 'Show password'}
             >
-              {showPassword ? <EyeOff className='h-4 w-4' /> : <Eye className='h-4 w-4' />}
+              {showPassword ? (
+                <EyeOff className='h-4 w-4' />
+              ) : (
+                <Eye className='h-4 w-4' />
+              )}
             </Button>
           </div>
         </Field>
@@ -213,6 +250,19 @@ export function EnvironmentForm({
         />
       </div>
       <div className='flex justify-end gap-2'>
+        <Button
+          type='button'
+          variant='outline'
+          disabled={testConnection.isPending}
+          onClick={handleTestConnection}
+        >
+          {testConnection.isPending ? (
+            <Loader2 className='mr-2 h-4 w-4 animate-spin' />
+          ) : (
+            <PlugZap className='mr-2 h-4 w-4' />
+          )}
+          Test connection
+        </Button>
         <Button type='submit' disabled={isSubmitting}>
           {isSubmitting ? 'Saving…' : submitLabel}
         </Button>
@@ -232,7 +282,7 @@ function Field({
 }) {
   return (
     <div className='space-y-2'>
-      <label className='text-sm font-medium leading-none'>{label}</label>
+      <label className='text-sm leading-none font-medium'>{label}</label>
       {children}
       {error && <p className='text-xs text-destructive'>{error}</p>}
     </div>
@@ -255,7 +305,7 @@ function CheckboxField({
         checked={checked}
         onChange={(e) => onCheckedChange(e.target.checked)}
         className={cn(
-          'h-4 w-4 rounded border border-input bg-transparent accent-primary',
+          'h-4 w-4 rounded border border-input bg-transparent accent-primary'
         )}
       />
       {label}
