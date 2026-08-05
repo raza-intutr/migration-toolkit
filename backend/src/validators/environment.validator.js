@@ -14,6 +14,15 @@ export const createEnvironmentSchema = z.object({
   ismultitenant: z.boolean().default(false),
 });
 
+export const testEnvironmentConnectionSchema = z.object({
+  host: z.string().min(1, 'Host is required'),
+  port: z.coerce.number().int().min(1).max(65535).default(5432),
+  db: z.string().min(1, 'Database name is required'),
+  user: z.string().min(1, 'User is required'),
+  password: z.string().optional(),
+  ssl_mode: z.string().min(1).default('require'),
+});
+
 export const updateEnvironmentSchema = z.object({
   name: nameSchema.optional(),
   host: z.string().min(1).optional(),

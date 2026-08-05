@@ -67,6 +67,41 @@ router.get('/:tenantCode', asyncHandler(tenantController.getTenantByCode));
 
 /**
  * @openapi
+ * /environments/{id}/tenants/{tenantCode}/tables:
+ *   get:
+ *     summary: List tables in a tenant database
+ *     description: >-
+ *       Connects to the tenant's own database (from its db_details.url) and
+ *       returns its user tables (excluding Postgres system schemas) with an
+ *       estimated row count.
+ *     tags: [Tenants]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *       - in: path
+ *         name: tenantCode
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: List of tables in the tenant database
+ *       400:
+ *         description: Tenant has no db_details.url configured
+ *       401:
+ *         description: Not authenticated
+ *       404:
+ *         description: Environment or tenant not found
+ *       502:
+ *         description: Unable to query tenant database
+ */
+router.get('/:tenantCode/tables', asyncHandler(tenantController.listTenantTables));
+
+/**
+ * @openapi
  * /environments/{id}/tenants/{tenantCode}/test-connection:
  *   get:
  *     summary: Test a tenant database connection

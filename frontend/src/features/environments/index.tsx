@@ -1,42 +1,67 @@
 import { useMemo, useState } from 'react'
+import { useQueryClient } from '@tanstack/react-query'
+import { Link, useNavigate } from '@tanstack/react-router'
 import {
   flexRender,
   getCoreRowModel,
   useReactTable,
   type ColumnDef,
 } from '@tanstack/react-table'
-import { Link, useNavigate } from '@tanstack/react-router'
-import { MoreHorizontal, Pencil, Plus, Trash2 } from 'lucide-react'
 import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
+  Loader2,
+  MoreHorizontal,
+  Pencil,
+  PlugZap,
+  Plus,
+  Trash2,
+  CircleCheck,
+  CircleX,
+} from 'lucide-react'
+import { toast } from 'sonner'
+import useDialogState from '@/hooks/use-dialog-state'
 import { Badge } from '@/components/ui/badge'
-import { Skeleton } from '@/components/ui/skeleton'
+import { Button } from '@/components/ui/button'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
+import { Skeleton } from '@/components/ui/skeleton'
 import { ConfirmDialog } from '@/components/confirm-dialog'
-import { toast } from 'sonner'
-import useDialogState from '@/hooks/use-dialog-state'
 import {
   useDeleteEnvironment,
+  useEnvironmentHealth,
   useEnvironments,
+  useTestConnection,
   type Environment,
 } from './api'
 
 export function EnvironmentsPage() {
   const navigate = useNavigate()
+  const queryClient = useQueryClient()
   const { data, isLoading } = useEnvironments()
+  const { data: healthData } = useEnvironmentHealth()
   const deleteEnvironment = useDeleteEnvironment()
+  const testConnection = useTestConnection()
   const [confirmDelete, setConfirmDelete] = useDialogState<boolean>(false)
   const [target, setTarget] = useState<Environment | null>(null)
+  const [testingId, setTestingId] = useState<string | null>(null)
+
+  const healthByEnvironment = useMemo(() => {
+    const map = new Map<
+      string,
+      { connected: boolean; latencyMs: number | null }
+    >()
+    for (const env of healthData ?? []) {
+      map.set(env.environmentId, {
+        connected: env.connected,
+        latencyMs: env.latencyMs,
+      })
+    }
+    return map
+  }, [healthData])
 
   const openDelete = (environment: Environment) => {
     setTarget(environment)
@@ -45,6 +70,40 @@ export function EnvironmentsPage() {
   const closeDelete = () => {
     setConfirmDelete(null)
     setTarget(null)
+  }
+
+  const handleTestConnection = async (environment: Environment) => {
+    setTestingId(environment.id)
+    try {
+      const result = await testConnection.mutateAsync(environment.id)
+      if (result.connected) {
+        toast.success(
+          `Connected to "${environment.name}" · ${result.latencyMs}ms`
+        )
+      } else {
+        toast.error(`Connection failed: ${result.error ?? 'unknown error'}`)
+      }
+      queryClient.invalidateQueries({ queryKey: ['environments', 'health'] })
+    } catch (error) {
+      toast.error(
+        error instanceof Error ? error.message : 'Failed to test connection'
+      )
+    } finally {
+      setTestingId(null)
+    }
+  }
+
+  const handleDelete = async () => {
+    if (!target) return
+    try {
+      await deleteEnvironment.mutateAsync(target.id)
+      toast.success(`Environment "${target.name}" deleted`)
+      closeDelete()
+    } catch (error) {
+      toast.error(
+        error instanceof Error ? error.message : 'Failed to delete environment'
+      )
+    }
   }
 
   const columns = useMemo<ColumnDef<Environment>[]>(
@@ -70,12 +129,26 @@ export function EnvironmentsPage() {
       {
         header: 'Status',
         accessorKey: 'is_active',
-        cell: ({ row }) =>
-          row.original.is_active ? (
-            <Badge variant='default'>active</Badge>
+        cell: ({ row }) => {
+          const health = healthByEnvironment.get(row.original.id)
+          const connected = health?.connected
+          if (connected === undefined) {
+            return <span className='text-muted-foreground'>—</span>
+          }
+          return connected ? (
+            <Badge variant='default'>
+              <CircleCheck className='h-3 w-3' />
+              {health?.latencyMs != null
+                ? `${health.latencyMs}ms`
+                : 'connected'}
+            </Badge>
           ) : (
-            <Badge variant='secondary'>inactive</Badge>
-          ),
+            <Badge variant='destructive'>
+              <CircleX className='h-3 w-3' />
+              unreachable
+            </Badge>
+          )
+        },
       },
       {
         header: 'Multi-tenant',
@@ -112,6 +185,17 @@ export function EnvironmentsPage() {
                   Edit
                 </DropdownMenuItem>
                 <DropdownMenuItem
+                  disabled={testingId === row.original.id}
+                  onClick={() => handleTestConnection(row.original)}
+                >
+                  {testingId === row.original.id ? (
+                    <Loader2 className='mr-2 h-4 w-4 animate-spin' />
+                  ) : (
+                    <PlugZap className='mr-2 h-4 w-4' />
+                  )}
+                  Test connection
+                </DropdownMenuItem>
+                <DropdownMenuItem
                   variant='destructive'
                   onClick={() => openDelete(row.original)}
                 >
@@ -124,7 +208,7 @@ export function EnvironmentsPage() {
         ),
       },
     ],
-    [navigate, openDelete],
+    [navigate, openDelete, handleTestConnection, testingId, healthByEnvironment]
   )
 
   const table = useReactTable({
@@ -132,19 +216,6 @@ export function EnvironmentsPage() {
     columns,
     getCoreRowModel: getCoreRowModel(),
   })
-
-  const handleDelete = async () => {
-    if (!target) return
-    try {
-      await deleteEnvironment.mutateAsync(target.id)
-      toast.success(`Environment "${target.name}" deleted`)
-      closeDelete()
-    } catch (error) {
-      toast.error(
-        error instanceof Error ? error.message : 'Failed to delete environment',
-      )
-    }
-  }
 
   return (
     <>
@@ -180,7 +251,7 @@ export function EnvironmentsPage() {
                             ? null
                             : flexRender(
                                 header.column.columnDef.header,
-                                header.getContext(),
+                                header.getContext()
                               )}
                         </th>
                       ))}
@@ -197,7 +268,7 @@ export function EnvironmentsPage() {
                         <td key={cell.id} className='px-4 py-3'>
                           {flexRender(
                             cell.column.columnDef.cell,
-                            cell.getContext(),
+                            cell.getContext()
                           )}
                         </td>
                       ))}
