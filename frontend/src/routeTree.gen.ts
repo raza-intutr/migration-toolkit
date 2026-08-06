@@ -12,6 +12,8 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as AuthenticatedIndexRouteImport } from './routes/_authenticated/index'
 import { Route as AuthenticatedTenantTablesRouteImport } from './routes/_authenticated/tenant-tables'
+import { Route as AuthenticatedMigrationsIndexRouteImport } from './routes/_authenticated/migrations/index'
+import { Route as AuthenticatedMigrationRunsIndexRouteImport } from './routes/_authenticated/migration-runs/index'
 import { Route as AuthenticatedEnvironmentsIndexRouteImport } from './routes/_authenticated/environments/index'
 import { Route as AuthenticatedEnvironmentsNewRouteImport } from './routes/_authenticated/environments/new'
 import { Route as AuthenticatedEnvironmentsIdEditRouteImport } from './routes/_authenticated/environments/$id/edit'
@@ -29,6 +31,18 @@ const AuthenticatedTenantTablesRoute =
   AuthenticatedTenantTablesRouteImport.update({
     id: '/tenant-tables',
     path: '/tenant-tables',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedMigrationsIndexRoute =
+  AuthenticatedMigrationsIndexRouteImport.update({
+    id: '/migrations/',
+    path: '/migrations/',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedMigrationRunsIndexRoute =
+  AuthenticatedMigrationRunsIndexRouteImport.update({
+    id: '/migration-runs/',
+    path: '/migration-runs/',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
 const AuthenticatedEnvironmentsIndexRoute =
@@ -55,6 +69,8 @@ export interface FileRoutesByFullPath {
   '/tenant-tables': typeof AuthenticatedTenantTablesRoute
   '/environments/new': typeof AuthenticatedEnvironmentsNewRoute
   '/environments/': typeof AuthenticatedEnvironmentsIndexRoute
+  '/migration-runs/': typeof AuthenticatedMigrationRunsIndexRoute
+  '/migrations/': typeof AuthenticatedMigrationsIndexRoute
   '/environments/$id/edit': typeof AuthenticatedEnvironmentsIdEditRoute
 }
 export interface FileRoutesByTo {
@@ -62,6 +78,8 @@ export interface FileRoutesByTo {
   '/': typeof AuthenticatedIndexRoute
   '/environments/new': typeof AuthenticatedEnvironmentsNewRoute
   '/environments': typeof AuthenticatedEnvironmentsIndexRoute
+  '/migration-runs': typeof AuthenticatedMigrationRunsIndexRoute
+  '/migrations': typeof AuthenticatedMigrationsIndexRoute
   '/environments/$id/edit': typeof AuthenticatedEnvironmentsIdEditRoute
 }
 export interface FileRoutesById {
@@ -71,6 +89,8 @@ export interface FileRoutesById {
   '/_authenticated/': typeof AuthenticatedIndexRoute
   '/_authenticated/environments/new': typeof AuthenticatedEnvironmentsNewRoute
   '/_authenticated/environments/': typeof AuthenticatedEnvironmentsIndexRoute
+  '/_authenticated/migration-runs/': typeof AuthenticatedMigrationRunsIndexRoute
+  '/_authenticated/migrations/': typeof AuthenticatedMigrationsIndexRoute
   '/_authenticated/environments/$id/edit': typeof AuthenticatedEnvironmentsIdEditRoute
 }
 export interface FileRouteTypes {
@@ -80,6 +100,8 @@ export interface FileRouteTypes {
     | '/tenant-tables'
     | '/environments/new'
     | '/environments/'
+    | '/migration-runs/'
+    | '/migrations/'
     | '/environments/$id/edit'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -87,6 +109,8 @@ export interface FileRouteTypes {
     | '/'
     | '/environments/new'
     | '/environments'
+    | '/migration-runs'
+    | '/migrations'
     | '/environments/$id/edit'
   id:
     | '__root__'
@@ -95,6 +119,8 @@ export interface FileRouteTypes {
     | '/_authenticated/'
     | '/_authenticated/environments/new'
     | '/_authenticated/environments/'
+    | '/_authenticated/migration-runs/'
+    | '/_authenticated/migrations/'
     | '/_authenticated/environments/$id/edit'
   fileRoutesById: FileRoutesById
 }
@@ -123,6 +149,20 @@ declare module '@tanstack/react-router' {
       path: '/tenant-tables'
       fullPath: '/tenant-tables'
       preLoaderRoute: typeof AuthenticatedTenantTablesRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/migrations/': {
+      id: '/_authenticated/migrations/'
+      path: '/migrations'
+      fullPath: '/migrations/'
+      preLoaderRoute: typeof AuthenticatedMigrationsIndexRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/migration-runs/': {
+      id: '/_authenticated/migration-runs/'
+      path: '/migration-runs'
+      fullPath: '/migration-runs/'
+      preLoaderRoute: typeof AuthenticatedMigrationRunsIndexRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/environments/': {
@@ -154,6 +194,8 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedIndexRoute: typeof AuthenticatedIndexRoute
   AuthenticatedEnvironmentsNewRoute: typeof AuthenticatedEnvironmentsNewRoute
   AuthenticatedEnvironmentsIndexRoute: typeof AuthenticatedEnvironmentsIndexRoute
+  AuthenticatedMigrationRunsIndexRoute: typeof AuthenticatedMigrationRunsIndexRoute
+  AuthenticatedMigrationsIndexRoute: typeof AuthenticatedMigrationsIndexRoute
   AuthenticatedEnvironmentsIdEditRoute: typeof AuthenticatedEnvironmentsIdEditRoute
 }
 
@@ -162,6 +204,8 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedIndexRoute: AuthenticatedIndexRoute,
   AuthenticatedEnvironmentsNewRoute: AuthenticatedEnvironmentsNewRoute,
   AuthenticatedEnvironmentsIndexRoute: AuthenticatedEnvironmentsIndexRoute,
+  AuthenticatedMigrationRunsIndexRoute: AuthenticatedMigrationRunsIndexRoute,
+  AuthenticatedMigrationsIndexRoute: AuthenticatedMigrationsIndexRoute,
   AuthenticatedEnvironmentsIdEditRoute: AuthenticatedEnvironmentsIdEditRoute,
 }
 
