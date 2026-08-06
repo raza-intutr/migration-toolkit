@@ -7,8 +7,12 @@ services:
       - ./backend/.env
     environment:
       PORT: 3000
-      NODE_ENV: production
-      CLIENT_URL: http://localhost:5173
+      NODE_ENV: development
+      DATABASE_URL: "postgresql://neondb_owner:npg_7gqvy0YOAxiK@ep-old-mud-azgp7scv-pooler.c-3.ap-southeast-1.aws.neon.tech/neondb?sslmode=require&channel_binding=require"
+      JWT_SECRET: change_this_to_a_long_random_string
+      JWT_EXPIRES_IN: 7d
+      CLIENT_URL: "http://localhost:3030"
+      MULTITENANCY_ENCRYPTION_KEY: mySecretKey123456
       DOCKER_HOST_REMAP: "true"
     extra_hosts:
       - "host.docker.internal:host-gateway"
@@ -26,6 +30,8 @@ services:
       context: ./frontend
       args:
         VITE_API_URL: /api/v1
+    environment:
+      VITE_API_URL: /api/v1
     ports:
       - "3030:80"
     depends_on:

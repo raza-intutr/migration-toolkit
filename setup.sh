@@ -2,23 +2,33 @@
 set -euo pipefail
 
 # Offline Tool - one-shot setup for a fresh machine.
-# Usage: ./setup.sh [--skip-db] [--run]
+# After installing everything it starts backend + frontend via docker compose
+# (detached), so they keep running after this terminal is closed.
+# Usage: ./setup.sh [--skip-db] [--local]
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 BACKEND="$ROOT/backend"
 FRONTEND="$ROOT/frontend"
 DB_PLACEHOLDER='user:password@localhost:5432/mydb'
 
+BACKEND_PORT=3000
+FRONTEND_PORT=3030
+DOCKER_FRONTEND_PORT=3030
+
 SKIP_DB=0
-RUN_AFTER=0
+LOCAL=0
 for arg in "$@"; do
   case "$arg" in
     --skip-db) SKIP_DB=1 ;;
-    --run) RUN_AFTER=1 ;;
+    --local) LOCAL=1 ;;
     -h|--help)
-      echo "Usage: ./setup.sh [--skip-db] [--run]"
+      echo "Usage: ./setup.sh [--skip-db] [--local]"
       echo "  --skip-db  skip database provisioning (backend will start but DB features fail)"
-      echo "  --run      start backend (:3000) and frontend (:5173) dev servers afterwards"
+      echo "  --local    run local pnpm dev servers in the foreground"
+      echo "             (Ctrl+C stops both and frees the ports)"
+      echo
+      echo "Default: install everything, then run docker compose up --build -d"
+      echo "         backend :3000, frontend :3030 - survive terminal close"
       exit 0
       ;;
     *) echo "Unknown option: $arg" >&2; exit 1 ;;
@@ -84,6 +94,15 @@ set_env() {
     sed -i.bak "s|^$key=.*|$key=\"$value\"|" "$file" && rm -f "$file.bak"
   else
     printf '\n%s="%s"\n' "$key" "$value" >> "$file"
+  fi
+}
+
+ensure_client_url() {
+  local current
+  current="$(get_env "$BACKEND/.env" CLIENT_URL)"
+  if [ "$current" != "http://localhost:$FRONTEND_PORT" ]; then
+    set_env "$BACKEND/.env" CLIENT_URL "http://localhost:$FRONTEND_PORT"
+    info "Set CLIENT_URL to http://localhost:$FRONTEND_PORT (frontend dev server, CORS)"
   fi
 }
 
@@ -159,11 +178,42 @@ run_prisma() {
 }
 
 run_dev() {
-  step "Starting dev servers"
-  (cd "$BACKEND" && pnpm dev >"$ROOT/backend-dev.log" 2>&1 &)
-  (cd "$FRONTEND" && pnpm dev >"$ROOT/frontend-dev.log" 2>&1 &)
-  info "Backend log:   $ROOT/backend-dev.log"
-  info "Frontend log:  $ROOT/frontend-dev.log"
+  step "Starting backend + frontend dev servers"
+  info "Backend:  http://localhost:$BACKEND_PORT/api/v1"
+  info "Frontend: http://localhost:$FRONTEND_PORT"
+  info "Press Ctrl+C to stop both and free the ports."
+
+  (cd "$BACKEND" && pnpm dev) & BACK_PID=$!
+  (cd "$FRONTEND" && pnpm dev) & FRONT_PID=$!
+
+  cleanup() {
+    kill "$BACK_PID" "$FRONT_PID" 2>/dev/null || true
+    wait "$BACK_PID" 2>/dev/null || true
+    wait "$FRONT_PID" 2>/dev/null || true
+    info "Dev servers stopped - ports freed."
+  }
+  trap cleanup INT TERM EXIT
+
+  wait "$BACK_PID"
+  wait "$FRONT_PID"
+}
+
+run_docker() {
+  step "Starting backend + frontend via docker compose (detached)"
+  command_exists docker || fail "Docker is not installed. Install Docker first: https://docker.com"
+  docker info >/dev/null 2>&1 || fail "Docker daemon is not running. Start Docker Desktop and retry."
+
+  (cd "$ROOT" && docker compose up --build -d)
+
+  info "Waiting for backend health check..."
+  for _ in $(seq 1 60); do
+    if curl -fsS "http://localhost:$BACKEND_PORT/api/v1/health" >/dev/null 2>&1; then
+      break
+    fi
+    sleep 2
+  done
+  curl -fsS "http://localhost:$BACKEND_PORT/api/v1/health" >/dev/null 2>&1 \
+    || warn "Backend did not become ready in time - check: docker compose logs backend"
 }
 
 main() {
@@ -172,6 +222,7 @@ main() {
   copy_env "$BACKEND"
   copy_env "$FRONTEND"
   install_deps
+  ensure_client_url
 
   if [ "$SKIP_DB" -eq 0 ]; then
     ensure_database_url
@@ -185,16 +236,19 @@ main() {
   fi
 
   step "Setup complete"
-  echo "  Backend:  cd backend  && pnpm dev      -> http://localhost:3000/api/v1"
-  echo "  Frontend: cd frontend && pnpm dev      -> http://localhost:5173"
-  echo "  API docs: http://localhost:3000/api/v1/docs"
-  echo "  Login:    admin@example.com / password123"
+  echo "  Login: admin@example.com / password123"
 
-  if [ "$RUN_AFTER" -eq 1 ]; then
+  if [ "$LOCAL" -eq 1 ]; then
     run_dev
+    info "Backend:  http://localhost:$BACKEND_PORT/api/v1"
+    info "Frontend: http://localhost:$FRONTEND_PORT"
   else
-    echo
-    echo "Run both with: ./setup.sh --run"
+    run_docker
+    info "Backend:  http://localhost:$BACKEND_PORT/api/v1"
+    info "Frontend: http://localhost:$DOCKER_FRONTEND_PORT"
+    info "API docs: http://localhost:$BACKEND_PORT/api/v1/docs"
+    info "Logs:     docker compose logs -f"
+    info "Containers keep running after this terminal closes. Stop with: docker compose down"
   fi
 }
 
