@@ -45,7 +45,7 @@ export const sidebarData: SidebarData = {
         //   icon: ArrowRightLeft,
         // },
         {
-          title: 'Migration runs',
+          title: 'Migrations',
           url: '/migration-runs',
           icon: ArrowRightLeft,
         },
