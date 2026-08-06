@@ -14,7 +14,8 @@ RUN pnpm exec prisma generate
 FROM node:22-alpine AS production
 WORKDIR /app
 ENV NODE_ENV=production
-RUN corepack enable \
+RUN apk add --no-cache postgresql-client \
+  && corepack enable \
   && corepack prepare pnpm@9.12.0 --activate
 COPY --from=deps /app/node_modules ./node_modules
 COPY --from=deps /app/package.json ./package.json
@@ -23,7 +24,9 @@ COPY --from=deps /app/.npmrc ./.npmrc
 COPY src ./src
 RUN pnpm install --prod --frozen-lockfile --ignore-scripts
 RUN addgroup -g 1001 -S appgroup \
-  && adduser -S appuser -u 1001 -G appgroup
+  && adduser -S appuser -u 1001 -G appgroup \
+  && mkdir -p /app/dumps \
+  && chown -R appuser:appgroup /app/dumps
 USER appuser
 EXPOSE 3000
 HEALTHCHECK --interval=30s --timeout=3s --start-period=10s CMD wget -qO- http://localhost:3000/api/v1/health || exit 1
