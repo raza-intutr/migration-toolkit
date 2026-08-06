@@ -39,11 +39,11 @@ export const sidebarData: SidebarData = {
           url: '/tenant-tables',
           icon: Table,
         },
-        // {
-        //   title: 'Migrations',
-        //   url: '/migrations',
-        //   icon: ArrowRightLeft,
-        // },
+        {
+          title: 'Migrations',
+          url: '/migrations',
+          icon: ArrowRightLeft,
+        },
         {
           title: 'Migrations',
           url: '/migration-runs',
