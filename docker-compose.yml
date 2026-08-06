@@ -27,7 +27,7 @@ services:
       args:
         VITE_API_URL: /api/v1
     ports:
-      - "5173:80"
+      - "3030:80"
     depends_on:
       backend:
         condition: service_healthy
