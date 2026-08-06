@@ -1,10 +1,9 @@
 import {
   ArrowRightLeft,
   Command,
-  Database,
   Globe,
   LayoutDashboard,
-  Table,
+  Table
 } from 'lucide-react'
 import { type SidebarData } from '../types'
 
@@ -40,15 +39,15 @@ export const sidebarData: SidebarData = {
           url: '/tenant-tables',
           icon: Table,
         },
+        // {
+        //   title: 'Migrations',
+        //   url: '/migrations',
+        //   icon: ArrowRightLeft,
+        // },
         {
           title: 'Migrations',
-          url: '/migrations',
-          icon: ArrowRightLeft,
-        },
-        {
-          title: 'Migration runs',
           url: '/migration-runs',
-          icon: Database,
+          icon: ArrowRightLeft,
         },
       ],
     },

@@ -254,13 +254,21 @@ export const testTenantConnection = async (environmentId, tenantCode) => {
   }
 };
 
-// List user tables with an estimated row count, excluding PG system schemas and
+// List user tables with an exact row count, excluding PG system schemas and
 // tables that start with `pg_` (pg_type, pg_class, etc).
+//
+// `pg_class.reltuples` is only an optimizer estimate and stays -1 until the
+// table has been ANALYZE'd or VACUUMed, so it cannot be trusted. Instead each
+// table gets a real COUNT(*) via query_to_xml in a single round trip.
 const listTablesFromPool = async (pool) => {
   const { rows } = await pool.query(
     `SELECT n.nspname AS table_schema,
             c.relname AS table_name,
-            c.reltuples::bigint AS estimated_rows
+            COALESCE(
+              (xpath('/row/cnt/text()',
+                     query_to_xml(format('SELECT count(*) AS cnt FROM %I.%I', n.nspname, c.relname), false, true, '')))[1]::text::bigint,
+              0
+            ) AS rows
        FROM pg_class c
        JOIN pg_namespace n ON n.oid = c.relnamespace
       WHERE c.relkind = 'r'
@@ -272,7 +280,7 @@ const listTablesFromPool = async (pool) => {
     schema: r.table_schema,
     name: r.table_name,
     qualified: `"${r.table_schema}"."${r.table_name}"`,
-    estimatedRows: r.estimated_rows,
+    estimatedRows: r.rows,
   }));
 };
 

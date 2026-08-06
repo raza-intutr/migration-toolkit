@@ -76,7 +76,7 @@ router.get('/:tenantCode', asyncHandler(tenantController.getTenantByCode));
  *     description: >-
  *       Connects to the tenant's own database (from its db_details.url) and
  *       returns its user tables (excluding Postgres system schemas) with an
- *       estimated row count.
+ *       exact row count.
  *     tags: [Tenants]
  *     parameters:
  *       - in: path
