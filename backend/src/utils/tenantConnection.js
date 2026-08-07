@@ -1,9 +1,10 @@
 import { parseJdbcUrl } from './jdbcUrl.js';
+import { resolveDbHost } from './dbHost.js';
 
 // Build a `pg` pool config from a resolved tenant connection object.
 // `ssl_mode` values: 'require' -> SSL on, 'disable' -> SSL off.
 export const buildPoolConfig = (conn) => ({
-  host: conn.host,
+  host: resolveDbHost(conn.host),
   port: conn.port,
   database: conn.db,
   user: conn.user,
@@ -14,7 +15,7 @@ export const buildPoolConfig = (conn) => ({
 // PG client env vars for the pg_dump/pg_restore child processes.
 const buildEnv = (conn) => ({
   PGPASSWORD: conn.password ?? '',
-  PGHOST: conn.host,
+  PGHOST: resolveDbHost(conn.host),
   PGPORT: String(conn.port),
   PGUSER: conn.user,
   PGDATABASE: conn.db,
@@ -22,7 +23,7 @@ const buildEnv = (conn) => ({
 });
 
 export const buildPgDumpCommand = (conn, dumpPath) => ({
-  args: ['-F', 'c', '-f', dumpPath],
+  args: ['-F', 'c', '-f', dumpPath, '--exclude-extension=*'],
   env: buildEnv(conn),
 });
 

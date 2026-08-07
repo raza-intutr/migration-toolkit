@@ -1,7 +1,3 @@
-import { Activity, Building2, Layers, Users, type LucideIcon } from 'lucide-react'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { Skeleton } from '@/components/ui/skeleton'
 import { ConfigDrawer } from '@/components/config-drawer'
 import { Header } from '@/components/layout/header'
 import { Main } from '@/components/layout/main'
@@ -9,10 +5,14 @@ import { TopNav } from '@/components/layout/top-nav'
 import { ProfileDropdown } from '@/components/profile-dropdown'
 import { Search } from '@/components/search'
 import { ThemeSwitch } from '@/components/theme-switch'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Skeleton } from '@/components/ui/skeleton'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { Activity, Building2, Layers, Users, type LucideIcon } from 'lucide-react'
 import { useDashboard } from './api'
+import { EnvironmentHealth } from './components/environment-health'
 import { Overview } from './components/overview'
 import { RecentTenants } from './components/recent-tenants'
-import { EnvironmentHealth } from './components/environment-health'
 
 function StatCard({
   title,

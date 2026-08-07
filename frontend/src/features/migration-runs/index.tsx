@@ -1,14 +1,3 @@
-import { useState } from 'react'
-import {
-  CircleCheck,
-  CircleX,
-  Database,
-  Loader2,
-  PlayCircle,
-  RefreshCw,
-  ShieldAlert,
-} from 'lucide-react'
-import { toast } from 'sonner'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import {
@@ -29,6 +18,17 @@ import { useEnvironments } from '@/features/environments/api'
 import {
   useEnvironmentTenants,
 } from '@/features/tenant-tables/api'
+import {
+  CircleCheck,
+  CircleX,
+  Database,
+  Loader2,
+  PlayCircle,
+  RefreshCw,
+  ShieldAlert,
+} from 'lucide-react'
+import { useState } from 'react'
+import { toast } from 'sonner'
 import {
   useMigrationRuns,
   useTriggerMigrationRun,
@@ -65,7 +65,6 @@ export function MigrationRunsPage() {
   const [targetEnvId, setTargetEnvId] = useState<string>()
   const [sourceTenant, setSourceTenant] = useState<string>()
   const [targetTenant, setTargetTenant] = useState<string>()
-  const [confirmOverwrite, setConfirmOverwrite] = useState(false)
 
   const sourceTenants = useEnvironmentTenants(sourceEnvId)
   const targetTenants = useEnvironmentTenants(targetEnvId)
@@ -83,7 +82,7 @@ export function MigrationRunsPage() {
         source_tenant_code: sourceTenant,
         target_env_id: targetEnvId,
         target_tenant_code: targetTenant,
-        confirm_overwrite: confirmOverwrite,
+        confirm_overwrite: true,
       })
       toast.success(`Migration run started (${run.id.slice(0, 8)}…)`)
       refresh()
@@ -214,17 +213,6 @@ export function MigrationRunsPage() {
               </Select>
             </div>
           </div>
-
-          {/* Overwrite */}
-          <label className='flex cursor-pointer items-center gap-2 rounded-md border bg-muted/20 px-3 py-2 text-sm'>
-            <input
-              type='checkbox'
-              className='h-4 w-4 accent-primary'
-              checked={confirmOverwrite}
-              onChange={(e) => setConfirmOverwrite(e.target.checked)}
-            />
-            Confirm overwrite — allowed even if target has data
-          </label>
 
           {/* Actions */}
           <div className='flex items-center justify-between gap-3'>

@@ -4,6 +4,7 @@ import prisma from '../config/db.js';
 import { AppError } from '../utils/AppError.js';
 import { parseJdbcUrl } from '../utils/jdbcUrl.js';
 import { decryptPassword } from '../utils/crypto.js';
+import { resolveDbHost } from '../utils/dbHost.js';
 
 const { Pool } = pg;
 
@@ -14,7 +15,7 @@ const ENV_POOL_KEY = 'env';
 const TENANT_POOL_KEY = 'tenant';
 
 export const toPoolConfig = (environment) => ({
-  host: environment.host,
+  host: resolveDbHost(environment.host),
   port: environment.port,
   database: environment.db,
   user: environment.user,
@@ -28,7 +29,7 @@ export const toTenantPoolConfig = (dbDetails, environmentSslMode = 'disable') =>
   // Prefer JDBC URL SSL setting, fallback to environment's ssl_mode.
   const useSsl = jdbcSsl !== undefined ? jdbcSsl : environmentSslMode !== 'disable';
   return {
-    host,
+    host: resolveDbHost(host),
     port,
     database,
     user: dbDetails.username,
@@ -202,7 +203,7 @@ export const resolveTenantConnection = async (environment, tenantCode) => {
   }
   const { host, port, database } = parseJdbcUrl(dbDetails.url);
   return {
-    host,
+    host: resolveDbHost(host),
     port,
     db: database,
     user: dbDetails.username,

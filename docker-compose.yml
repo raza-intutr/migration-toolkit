@@ -1,0 +1,45 @@
+services:
+  backend:
+    build:
+      context: ./backend
+      target: production
+    env_file:
+      - ./backend/.env
+    environment:
+      PORT: 3000
+      NODE_ENV: development
+      DATABASE_URL: "postgresql://neondb_owner:npg_7gqvy0YOAxiK@ep-old-mud-azgp7scv-pooler.c-3.ap-southeast-1.aws.neon.tech/neondb?sslmode=require&channel_binding=require"
+      JWT_SECRET: change_this_to_a_long_random_string
+      JWT_EXPIRES_IN: 7d
+      CLIENT_URL: "http://localhost:3030"
+      MULTITENANCY_ENCRYPTION_KEY: mySecretKey123456
+      DOCKER_HOST_REMAP: "true"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    ports:
+      - "3000:3000"
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:3000/api/v1/health"]
+      interval: 10s
+      timeout: 3s
+      retries: 10
+      start_period: 5s
+
+  frontend:
+    build:
+      context: ./frontend
+      args:
+        VITE_API_URL: /api/v1
+    environment:
+      VITE_API_URL: /api/v1
+    ports:
+      - "3030:80"
+    depends_on:
+      backend:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1/"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+      start_period: 3s
