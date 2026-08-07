@@ -23,7 +23,7 @@ const buildEnv = (conn) => ({
 });
 
 export const buildPgDumpCommand = (conn, dumpPath) => ({
-  args: ['-F', 'c', '-f', dumpPath],
+  args: ['-F', 'c', '-f', dumpPath, '--exclude-extension=*'],
   env: buildEnv(conn),
 });
 
