@@ -32,6 +32,23 @@ const runCmd = (bin, { args, env }) =>
     });
   });
 
+// Deterministically reset the target before an overwrite restore. `pg_restore
+// --clean` drops objects without CASCADE, so FK dependencies (e.g. a table
+// referenced by another table's FK constraint) make those drops fail
+// non-deterministically and leave the target half-cleaned. DROP OWNED BY removes
+// every object the connected user owns (tables, constraints, sequences,
+// functions, views) with dependency ordering handled by CASCADE, so the
+// subsequent restore starts from a guaranteed-empty state. It does not require
+// schema ownership, which the tenant user typically lacks.
+export const dropTargetSchema = async (conn) => {
+  const pool = new Pool(buildPoolConfig(conn));
+  try {
+    await pool.query('DROP OWNED BY CURRENT_USER CASCADE');
+  } finally {
+    await pool.end();
+  }
+};
+
 export const countRows = async (conn) => {
   const pool = new Pool(buildPoolConfig(conn));
   try {
@@ -74,6 +91,11 @@ export const runMigration = async (runId) => {
 
     logger.info(`migration.run ${run.id}: dumping source`);
     await runCmd('pg_dump', buildPgDumpCommand(sourceConn, dumpPath));
+
+    if (run.overwrite_confirmed) {
+      logger.info(`migration.run ${run.id}: resetting target schema`);
+      await dropTargetSchema(targetConn);
+    }
 
     logger.info(`migration.run ${run.id}: restoring to target`);
     await runCmd(
